@@ -12,15 +12,8 @@ class TargetController extends Controller
      */
     public function index()
     {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+        $targets = Target::with('student.user')->get();
+        return response()->json($targets);
     }
 
     /**
@@ -28,7 +21,17 @@ class TargetController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'student_id' => 'required|exists:students,id',
+            'description' => 'required|string',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'status' => 'required|string|in:active,completed,cancelled',
+        ]);
+
+        $target = Target::create($request->all());
+
+        return response()->json($target->load('student.user'), 201);
     }
 
     /**
@@ -36,15 +39,7 @@ class TargetController extends Controller
      */
     public function show(Target $target)
     {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Target $target)
-    {
-        //
+        return response()->json($target->load('student.user'));
     }
 
     /**
@@ -52,7 +47,16 @@ class TargetController extends Controller
      */
     public function update(Request $request, Target $target)
     {
-        //
+        $request->validate([
+            'description' => 'sometimes|required|string',
+            'start_date' => 'sometimes|required|date',
+            'end_date' => 'sometimes|required|date|after_or_equal:start_date',
+            'status' => 'sometimes|required|string|in:active,completed,cancelled',
+        ]);
+
+        $target->update($request->all());
+
+        return response()->json($target->load('student.user'));
     }
 
     /**
@@ -60,6 +64,7 @@ class TargetController extends Controller
      */
     public function destroy(Target $target)
     {
-        //
+        $target->delete();
+        return response()->json(['message' => 'Target deleted successfully']);
     }
 }

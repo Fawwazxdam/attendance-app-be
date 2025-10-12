@@ -28,4 +28,28 @@ class Attendance extends Model
             }
         });
     }
+
+    /**
+     * Get the student that owns the attendance.
+     */
+    public function student()
+    {
+        return $this->belongsTo(Student::class);
+    }
+
+    /**
+     * Get the attendance journals for the attendance.
+     */
+    public function attendanceJournals()
+    {
+        return $this->hasMany(AttendanceJournal::class);
+    }
+
+    /**
+     * Get the medias for the attendance.
+     */
+    public function medias()
+    {
+        return $this->morphMany(Media::class, 'morphable');
+    }
 }

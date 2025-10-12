@@ -12,15 +12,8 @@ class RewardPunishmentRuleController extends Controller
      */
     public function index()
     {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+        $rules = RewardPunishmentRule::all();
+        return response()->json($rules);
     }
 
     /**
@@ -28,7 +21,16 @@ class RewardPunishmentRuleController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'type' => 'required|in:reward,punishment',
+            'name' => 'required|string|max:255',
+            'points' => 'required|integer',
+            'description' => 'nullable|string',
+        ]);
+
+        $rule = RewardPunishmentRule::create($request->all());
+
+        return response()->json($rule, 201);
     }
 
     /**
@@ -36,15 +38,7 @@ class RewardPunishmentRuleController extends Controller
      */
     public function show(RewardPunishmentRule $rewardPunishmentRule)
     {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(RewardPunishmentRule $rewardPunishmentRule)
-    {
-        //
+        return response()->json($rewardPunishmentRule);
     }
 
     /**
@@ -52,7 +46,16 @@ class RewardPunishmentRuleController extends Controller
      */
     public function update(Request $request, RewardPunishmentRule $rewardPunishmentRule)
     {
-        //
+        $request->validate([
+            'type' => 'sometimes|required|in:reward,punishment',
+            'name' => 'sometimes|required|string|max:255',
+            'points' => 'sometimes|required|integer',
+            'description' => 'nullable|string',
+        ]);
+
+        $rewardPunishmentRule->update($request->all());
+
+        return response()->json($rewardPunishmentRule);
     }
 
     /**
@@ -60,6 +63,7 @@ class RewardPunishmentRuleController extends Controller
      */
     public function destroy(RewardPunishmentRule $rewardPunishmentRule)
     {
-        //
+        $rewardPunishmentRule->delete();
+        return response()->json(['message' => 'Reward punishment rule deleted successfully']);
     }
 }

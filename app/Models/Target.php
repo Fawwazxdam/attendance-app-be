@@ -29,4 +29,12 @@ class Target extends Model
             }
         });
     }
+
+    /**
+     * Get the student that owns the target.
+     */
+    public function student()
+    {
+        return $this->belongsTo(Student::class);
+    }
 }

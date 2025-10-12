@@ -6,15 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
-class AttendanceJournal extends Model
+class Media extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'uuid',
-        'attendance_id',
-        'note',
-    ];
+    protected $table = 'medias';
+    protected $guarded = ['id', 'created_at', 'updated_at'];
 
     protected static function boot()
     {
@@ -28,10 +25,10 @@ class AttendanceJournal extends Model
     }
 
     /**
-     * Get the attendance that owns the attendance journal.
+     * Get the owning morphable model.
      */
-    public function attendance()
+    public function morphable()
     {
-        return $this->belongsTo(Attendance::class);
+        return $this->morphTo();
     }
 }

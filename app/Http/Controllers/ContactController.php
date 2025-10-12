@@ -12,15 +12,8 @@ class ContactController extends Controller
      */
     public function index()
     {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+        $contacts = Contact::all();
+        return response()->json($contacts);
     }
 
     /**
@@ -28,7 +21,15 @@ class ContactController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'phone_email' => 'required|string|max:255',
+            'role' => 'required|string|max:255',
+        ]);
+
+        $contact = Contact::create($request->all());
+
+        return response()->json($contact, 201);
     }
 
     /**
@@ -36,15 +37,7 @@ class ContactController extends Controller
      */
     public function show(Contact $contact)
     {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Contact $contact)
-    {
-        //
+        return response()->json($contact);
     }
 
     /**
@@ -52,7 +45,15 @@ class ContactController extends Controller
      */
     public function update(Request $request, Contact $contact)
     {
-        //
+        $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'phone_email' => 'sometimes|required|string|max:255',
+            'role' => 'sometimes|required|string|max:255',
+        ]);
+
+        $contact->update($request->all());
+
+        return response()->json($contact);
     }
 
     /**
@@ -60,6 +61,7 @@ class ContactController extends Controller
      */
     public function destroy(Contact $contact)
     {
-        //
+        $contact->delete();
+        return response()->json(['message' => 'Contact deleted successfully']);
     }
 }

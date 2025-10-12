@@ -27,4 +27,12 @@ class StudentPoint extends Model
             }
         });
     }
+
+    /**
+     * Get the student that owns the student point.
+     */
+    public function student()
+    {
+        return $this->belongsTo(Student::class);
+    }
 }

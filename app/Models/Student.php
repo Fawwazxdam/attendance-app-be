@@ -13,10 +13,12 @@ class Student extends Model
     protected $fillable = [
         'uuid',
         'user_id',
-        'nis',
+        'fullname',
         'grade_id',
         'birth_date',
         'address',
+        'phone_number',
+        'image',
     ];
 
     protected static function boot()
@@ -28,5 +30,37 @@ class Student extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
+    }
+
+    /**
+     * Get the user that owns the student.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the grade that owns the student.
+     */
+    public function grade()
+    {
+        return $this->belongsTo(Grade::class);
+    }
+
+    /**
+     * Get the targets for the student.
+     */
+    public function targets()
+    {
+        return $this->hasMany(Target::class);
+    }
+
+    /**
+     * Get the student point for the student.
+     */
+    public function studentPoint()
+    {
+        return $this->hasOne(StudentPoint::class);
     }
 }

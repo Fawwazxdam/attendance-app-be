@@ -12,15 +12,8 @@ class FaqController extends Controller
      */
     public function index()
     {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+        $faqs = faq::all();
+        return response()->json($faqs);
     }
 
     /**
@@ -28,7 +21,14 @@ class FaqController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'question' => 'required|string',
+            'answer' => 'required|string',
+        ]);
+
+        $faq = faq::create($request->all());
+
+        return response()->json($faq, 201);
     }
 
     /**
@@ -36,15 +36,7 @@ class FaqController extends Controller
      */
     public function show(faq $faq)
     {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(faq $faq)
-    {
-        //
+        return response()->json($faq);
     }
 
     /**
@@ -52,7 +44,14 @@ class FaqController extends Controller
      */
     public function update(Request $request, faq $faq)
     {
-        //
+        $request->validate([
+            'question' => 'sometimes|required|string',
+            'answer' => 'sometimes|required|string',
+        ]);
+
+        $faq->update($request->all());
+
+        return response()->json($faq);
     }
 
     /**
@@ -60,6 +59,7 @@ class FaqController extends Controller
      */
     public function destroy(faq $faq)
     {
-        //
+        $faq->delete();
+        return response()->json(['message' => 'FAQ deleted successfully']);
     }
 }

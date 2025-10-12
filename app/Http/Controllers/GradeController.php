@@ -12,15 +12,8 @@ class GradeController extends Controller
      */
     public function index()
     {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+        $grades = Grade::with(['homeroomTeacher.user', 'students.user'])->get();
+        return response()->json($grades);
     }
 
     /**
@@ -28,7 +21,14 @@ class GradeController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'homeroom_teacher_id' => 'nullable|exists:teachers,id',
+        ]);
+
+        $grade = Grade::create($request->all());
+
+        return response()->json($grade->load(['homeroomTeacher.user', 'students.user']), 201);
     }
 
     /**
@@ -36,15 +36,7 @@ class GradeController extends Controller
      */
     public function show(Grade $grade)
     {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Grade $grade)
-    {
-        //
+        return response()->json($grade->load(['homeroomTeacher.user', 'students.user']));
     }
 
     /**
@@ -52,7 +44,14 @@ class GradeController extends Controller
      */
     public function update(Request $request, Grade $grade)
     {
-        //
+        $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'homeroom_teacher_id' => 'sometimes|nullable|exists:teachers,id',
+        ]);
+
+        $grade->update($request->all());
+
+        return response()->json($grade->load(['homeroomTeacher.user', 'students.user']));
     }
 
     /**
@@ -60,6 +59,7 @@ class GradeController extends Controller
      */
     public function destroy(Grade $grade)
     {
-        //
+        $grade->delete();
+        return response()->json(['message' => 'Grade deleted successfully']);
     }
 }

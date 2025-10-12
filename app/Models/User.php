@@ -60,4 +60,28 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Get the teacher associated with the user.
+     */
+    public function teacher()
+    {
+        return $this->hasOne(Teacher::class);
+    }
+
+    /**
+     * Get the student associated with the user.
+     */
+    public function student()
+    {
+        return $this->hasOne(Student::class);
+    }
+
+    /**
+     * Get the medias for the user.
+     */
+    public function medias()
+    {
+        return $this->morphMany(Media::class, 'morphable');
+    }
 }

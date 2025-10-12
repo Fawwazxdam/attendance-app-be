@@ -26,4 +26,20 @@ class Grade extends Model
             }
         });
     }
+
+    /**
+     * Get the homeroom teacher for the grade.
+     */
+    public function homeroomTeacher()
+    {
+        return $this->belongsTo(Teacher::class, 'homeroom_teacher_id');
+    }
+
+    /**
+     * Get the students for the grade.
+     */
+    public function students()
+    {
+        return $this->hasMany(Student::class);
+    }
 }

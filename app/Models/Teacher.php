@@ -13,7 +13,9 @@ class Teacher extends Model
     protected $fillable = [
         'uuid',
         'user_id',
-        'nip',
+        'fullname',
+        'phone_number',
+        'address',
         'subject',
         'hire_date',
     ];
@@ -27,5 +29,21 @@ class Teacher extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
+    }
+
+    /**
+     * Get the user that owns the teacher.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the grade where this teacher is homeroom.
+     */
+    public function homeroomGrade()
+    {
+        return $this->hasOne(Grade::class, 'homeroom_teacher_id');
     }
 }

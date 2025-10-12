@@ -12,15 +12,8 @@ class StudentController extends Controller
      */
     public function index()
     {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+        $students = Student::with(['user', 'grade', 'studentPoint'])->get();
+        return response()->json($students);
     }
 
     /**
@@ -28,7 +21,24 @@ class StudentController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'fullname' => 'required|string|max:255',
+            'grade_id' => 'required|exists:grades,id',
+            'birth_date' => 'required|date',
+            'address' => 'nullable|string',
+            'phone_number' => 'nullable|string|max:255',
+            'image' => 'nullable|string|max:255',
+        ]);
+
+        // Ensure the user doesn't already have a student record
+        if (Student::where('user_id', $request->user_id)->exists()) {
+            return response()->json(['error' => 'User already has a student record'], 400);
+        }
+
+        $student = Student::create($request->all());
+
+        return response()->json($student->load(['user', 'grade', 'studentPoint']), 201);
     }
 
     /**
@@ -36,15 +46,7 @@ class StudentController extends Controller
      */
     public function show(Student $student)
     {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Student $student)
-    {
-        //
+        return response()->json($student->load(['user', 'grade', 'studentPoint']));
     }
 
     /**
@@ -52,7 +54,18 @@ class StudentController extends Controller
      */
     public function update(Request $request, Student $student)
     {
-        //
+        $request->validate([
+            'fullname' => 'sometimes|required|string|max:255',
+            'grade_id' => 'sometimes|required|exists:grades,id',
+            'birth_date' => 'sometimes|required|date',
+            'address' => 'nullable|string',
+            'phone_number' => 'nullable|string|max:255',
+            'image' => 'nullable|string|max:255',
+        ]);
+
+        $student->update($request->all());
+
+        return response()->json($student->load(['user', 'grade', 'studentPoint']));
     }
 
     /**
@@ -60,6 +73,7 @@ class StudentController extends Controller
      */
     public function destroy(Student $student)
     {
-        //
+        $student->delete();
+        return response()->json(['message' => 'Student deleted successfully']);
     }
 }

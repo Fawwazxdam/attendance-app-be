@@ -11,12 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('contacts', function (Blueprint $table) {
+        Schema::create('medias', function (Blueprint $table) {
             $table->id();
             $table->uuid('uuid')->unique();
-            $table->string('name');
-            $table->string('phone_email');
-            $table->string('role');
+            $table->string('path');
+            $table->string('filename');
+            $table->string('mime_type')->nullable();
+            $table->unsignedBigInteger('size')->nullable();
+            $table->morphs('morphable');
             $table->timestamps();
         });
     }
@@ -26,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('contact');
+        Schema::dropIfExists('medias');
     }
 };

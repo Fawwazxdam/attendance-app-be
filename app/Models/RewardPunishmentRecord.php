@@ -6,18 +6,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
-class RewardPunishmentLog extends Model
+class RewardPunishmentRecord extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'uuid',
         'student_id',
-        'rules_id',
-        'date',
-        'given_by',
-        'remarks',
+        'teacher_id',
+        'rule_id',
+        'type',
+        'description',
         'status',
+        'given_date',
+        'notes',
     ];
 
     protected static function boot()
@@ -32,7 +34,7 @@ class RewardPunishmentLog extends Model
     }
 
     /**
-     * Get the student that owns the reward punishment log.
+     * Get the student that owns the reward punishment record.
      */
     public function student()
     {
@@ -40,18 +42,18 @@ class RewardPunishmentLog extends Model
     }
 
     /**
-     * Get the rule that owns the reward punishment log.
-     */
-    public function rule()
-    {
-        return $this->belongsTo(RewardPunishmentRule::class, 'rules_id');
-    }
-
-    /**
-     * Get the teacher that owns the reward punishment log.
+     * Get the teacher that owns the reward punishment record.
      */
     public function teacher()
     {
-        return $this->belongsTo(Teacher::class, 'given_by');
+        return $this->belongsTo(Teacher::class);
+    }
+
+    /**
+     * Get the rule that owns the reward punishment record.
+     */
+    public function rule()
+    {
+        return $this->belongsTo(RewardPunishmentRule::class, 'rule_id');
     }
 }

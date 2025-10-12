@@ -40,9 +40,9 @@ class AttendanceController extends Controller
         $student = $user->student;
 
         if (!$student) {
-            // If not a student, return all attendances (for teachers/admins)
+            // If not a student (teachers and administrators), return all attendances
             $query = Attendance::where('date', $parsedDate)
-                ->with('student:id,fullname,grade_id', 'student.studentPoint', 'student.grade', 'medias');
+                ->with('student:id,fullname,grade_id', 'student.studentPoint', 'student.grade', 'user:id,name,email', 'medias');
 
             // Apply status filter if provided
             if ($status) {
@@ -57,6 +57,13 @@ class AttendanceController extends Controller
             }
 
             $attendances = $query->get();
+
+            // Debug logging
+            Log::info('Attendance query result', [
+                'date' => $parsedDate,
+                'count' => $attendances->count(),
+                'attendances' => $attendances->toArray()
+            ]);
 
             // Add points_earned to each attendance
             $attendances->transform(function ($attendance) {
@@ -108,6 +115,79 @@ class AttendanceController extends Controller
             ]);
 
             $user = $request->user();
+
+            // Check if user is administrator
+            if ($user->role === 'administrator') {
+                // For administrators, create a special attendance record with excused status
+                $today = Carbon::today('Asia/Jakarta')->toDateString();
+                $existingAttendance = Attendance::where('student_id', null)
+                    ->where('date', $today)
+                    ->where('user_id', $user->id)
+                    ->first();
+
+                if ($existingAttendance) {
+                    return response()->json(['message' => 'Attendance already submitted for today'], 409);
+                }
+
+                // Create attendance for administrator
+                $attendance = DB::transaction(function () use ($request, $user, $today) {
+                    $now = Carbon::now('Asia/Jakarta');
+                    $currentTime = $now->format('H:i');
+
+                    // Administrators always get excused status
+                    $status = 'excused';
+
+                    $attendance = Attendance::create([
+                        'student_id' => null, // No student record for admin
+                        'user_id' => $user->id, // Store admin user ID
+                        'date' => $today,
+                        'status' => $status,
+                        'remarks' => $request->remarks,
+                    ]);
+
+                    // Handle image uploads
+                    if ($request->hasFile('images')) {
+                        $images = $request->file('images');
+
+                        foreach ($images as $image) {
+                            if (!$image->isValid()) {
+                                throw new \Exception('Invalid image file');
+                            }
+
+                            $path = $image->store('attendance_images', 'public');
+
+                            Media::create([
+                                'path' => $path,
+                                'filename' => $image->getClientOriginalName(),
+                                'mime_type' => $image->getMimeType(),
+                                'size' => $image->getSize(),
+                                'morphable_type' => Attendance::class,
+                                'morphable_id' => $attendance->id,
+                            ]);
+                        }
+                    }
+
+                    // Create attendance journal
+                    AttendanceJournal::create([
+                        'attendance_id' => $attendance->id,
+                        'note' => "Administrator attendance submitted at {$currentTime} with status {$status}",
+                    ]);
+
+                    return $attendance;
+                });
+
+                // Load relationships for response
+                $attendance->load('medias');
+
+                // Add points_earned to response (administrators get 0 points)
+                $attendance->points_earned = 0;
+
+                return response()->json([
+                    'message' => 'Administrator attendance submitted successfully',
+                    'attendance' => $attendance,
+                ], 201);
+            }
+
             $student = $user->student()->with('grade.homeroomTeacher')->first();
 
             if (!$student) {

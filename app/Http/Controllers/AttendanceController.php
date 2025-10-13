@@ -214,7 +214,7 @@ class AttendanceController extends Controller
                 $status = 'late'; // default
                 if ($currentTime < '06:45') {
                     $status = 'present';
-                } elseif ($currentTime <= '07:00') {
+                } elseif ($currentTime <= '06:55') {
                     $status = 'excused';
                 }
 

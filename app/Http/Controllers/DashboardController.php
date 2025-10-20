@@ -322,7 +322,28 @@ class DashboardController extends Controller
             $data = [];
             $labels = [];
 
-            if ($period === 'month') {
+            if ($period === 'day') {
+                // Last 7 days attendance for this student
+                for ($i = $limit - 1; $i >= 0; $i--) {
+                    $date = Carbon::now()->subDays($i)->toDateString();
+
+                    $dailyAttendance = Attendance::where('student_id', $studentId)
+                        ->where('date', $date)
+                        ->get();
+
+                    $presentRecords = $dailyAttendance->where('status', 'present');
+                    $lateRecords = $dailyAttendance->where('status', 'late');
+
+                    $labels[] = Carbon::parse($date)->format('M d');
+                    $data[] = [
+                        'present' => $presentRecords->count(),
+                        'late' => $lateRecords->count(),
+                        'absent' => $dailyAttendance->where('status', 'absent')->count(),
+                        'present_times' => $presentRecords->pluck('created_at')->map(fn($time) => $time ? $time->format('H:i') : null)->toArray(),
+                        'late_times' => $lateRecords->pluck('created_at')->map(fn($time) => $time ? $time->format('H:i') : null)->toArray()
+                    ];
+                }
+            } elseif ($period === 'month') {
                 // Last 12 months
                 for ($i = $limit - 1; $i >= 0; $i--) {
                     $date = Carbon::now()->subMonths($i);
@@ -432,6 +453,121 @@ class DashboardController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch class performance data',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get attendance chart data for a specific student
+     */
+    public function studentAttendanceChart(Request $request, $user_id)
+    {
+        try {
+            // $studentId = Student::where('user_id', $user_id)->value('id');
+            $studentId = $user_id;
+            $period = $request->get('period', 'week'); // day, month, week, year
+            $limit = $request->get('limit', $period === 'week' ? 1 : ($period === 'day' ? 7 : 12));
+
+            $data = [];
+            $labels = [];
+
+            if ($period === 'day') {
+                // Last 7 days attendance for this student
+                for ($i = $limit - 1; $i >= 0; $i--) {
+                    $date = Carbon::now()->subDays($i)->toDateString();
+
+                    $dailyAttendance = Attendance::where('student_id', $studentId)
+                        ->where('date', $date)
+                        ->get();
+
+                    $presentRecords = $dailyAttendance->where('status', 'present');
+                    $lateRecords = $dailyAttendance->where('status', 'late');
+
+                    $labels[] = Carbon::parse($date)->format('M d');
+                    $data[] = [
+                        'present' => $presentRecords->count(),
+                        'late' => $lateRecords->count(),
+                        'absent' => $dailyAttendance->where('status', 'absent')->count(),
+                        'present_times' => $presentRecords->pluck('created_at')->map(fn($time) => $time ? $time->format('H:i') : null)->toArray(),
+                        'late_times' => $lateRecords->pluck('created_at')->map(fn($time) => $time ? $time->format('H:i') : null)->toArray()
+                    ];
+                }
+            } elseif ($period === 'month') {
+                // Last 12 weeks
+                for ($i = $limit - 1; $i >= 0; $i--) {
+                    $startOfWeek = Carbon::now()->subWeeks($i)->startOfWeek();
+                    $endOfWeek = $startOfWeek->copy()->endOfWeek();
+
+                    $weeklyAttendance = Attendance::where('student_id', $studentId)
+                        ->whereBetween('date', [$startOfWeek->toDateString(), $endOfWeek->toDateString()])
+                        ->select('status', 'created_at', DB::raw('count(*) as count'))
+                        ->groupBy('status')
+                        ->pluck('count', 'status')
+                        ->toArray();
+
+                    $labels[] = $startOfWeek->format('M d') . ' - ' . $endOfWeek->format('M d');
+                    $data[] = [
+                        'present' => $weeklyAttendance['present'] ?? 0,
+                        'late' => $weeklyAttendance['late'] ?? 0,
+                        'absent' => $weeklyAttendance['absent'] ?? 0
+                    ];
+                }
+            } elseif ($period === 'year') {
+                // Last 5 years
+                for ($i = $limit - 1; $i >= 0; $i--) {
+                    $year = Carbon::now()->subYears($i)->year;
+
+                    $yearlyAttendance = Attendance::where('student_id', $studentId)
+                        ->whereYear('date', $year)
+                        ->select('status', DB::raw('count(*) as count'))
+                        ->groupBy('status')
+                        ->pluck('count', 'status')
+                        ->toArray();
+
+                    $labels[] = $year;
+                    $data[] = [
+                        'present' => $yearlyAttendance['present'] ?? 0,
+                        'late' => $yearlyAttendance['late'] ?? 0,
+                        'absent' => $yearlyAttendance['absent'] ?? 0
+                    ];
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'labels' => $labels,
+                    'datasets' => [
+                        [
+                            'label' => 'Hadir',
+                            'data' => array_column($data, 'present'),
+                            'borderColor' => '#10B981',
+                            'backgroundColor' => 'rgba(16, 185, 129, 0.1)',
+                            'fill' => true
+                        ],
+                        [
+                            'label' => 'Terlambat',
+                            'data' => array_column($data, 'late'),
+                            'borderColor' => '#F59E0B',
+                            'backgroundColor' => 'rgba(245, 158, 11, 0.1)',
+                            'fill' => true
+                        ],
+                        [
+                            'label' => 'Tidak Hadir',
+                            'data' => array_column($data, 'absent'),
+                            'borderColor' => '#EF4444',
+                            'backgroundColor' => 'rgba(239, 68, 68, 0.1)',
+                            'fill' => true
+                        ]
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch student attendance chart data',
                 'error' => $e->getMessage()
             ], 500);
         }

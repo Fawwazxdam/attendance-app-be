@@ -63,4 +63,12 @@ class Student extends Model
     {
         return $this->hasOne(StudentPoint::class);
     }
+
+    /**
+     * Get the attendances for the student.
+     */
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class);
+    }
 }

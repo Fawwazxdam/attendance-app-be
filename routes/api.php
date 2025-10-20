@@ -22,7 +22,13 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
 Route::get('/user', function (Request $request) {
-    return $request->user();
+    $user = $request->user();
+    if ($user->role === 'student') {
+        $user->load('student');
+    } elseif ($user->role === 'teacher') {
+        $user->load('teacher');
+    }
+    return $user;
 })->middleware('auth:sanctum');
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -35,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Chart data routes
     Route::get('/charts/attendance-trend', [DashboardController::class, 'attendanceTrend']);
     Route::get('/charts/class-performance', [DashboardController::class, 'classPerformance']);
+    Route::get('/charts/student-attendance/{studentId}', [DashboardController::class, 'studentAttendanceChart']);
 
     // Existing routes
     Route::apiResource('users', UserController::class);

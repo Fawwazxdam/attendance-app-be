@@ -52,8 +52,12 @@ class AuthController extends Controller
         $user = Auth::user();
         $token = $user->createToken('API Token')->plainTextToken;
 
+        // Load related data based on role
+        $userData = $user->load($user->role === 'student' ? 'student' : 'teacher');
+
         return response()->json([
-            'user' => $user,
+            'message' => 'Login successful',
+            'user' => $userData,
             'token' => $token,
         ]);
     }

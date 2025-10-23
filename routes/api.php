@@ -16,6 +16,7 @@ use App\Http\Controllers\RewardPunishmentRecordController;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Log;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -58,4 +59,31 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('reward-punishment-records', RewardPunishmentRecordController::class);
     Route::get('reward-punishment-records/students/list', [RewardPunishmentRecordController::class, 'studentsWithRecords']);
     Route::get('student-points/monthly-report', [StudentPointController::class, 'monthlyReport']);
+
+    // Media routes for serving images (no auth required for images)
+    Route::get('/storage/{path}', function ($path) {
+        // Handle URL encoding issues
+        $decodedPath = urldecode($path);
+        $fullPath = storage_path('app/public/' . $decodedPath);
+
+        Log::info('Storage request', [
+            'original_path' => $path,
+            'decoded_path' => $decodedPath,
+            'full_path' => $fullPath,
+            'exists' => file_exists($fullPath)
+        ]);
+
+        if (!file_exists($fullPath)) {
+            Log::error('File not found: ' . $fullPath);
+            return response()->json(['message' => 'File not found'], 404);
+        }
+
+        $mimeType = mime_content_type($fullPath);
+        Log::info('Serving file', ['mime_type' => $mimeType]);
+
+        return response()->file($fullPath, [
+            'Content-Type' => $mimeType,
+            'Cache-Control' => 'public, max-age=3600'
+        ]);
+    })->where('path', '.*')->withoutMiddleware(['auth:sanctum']);
 });

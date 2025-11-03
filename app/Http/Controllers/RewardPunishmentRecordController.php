@@ -190,6 +190,59 @@ class RewardPunishmentRecordController extends Controller
     }
 
     /**
+     * Bulk update reward punishment records status to done.
+     */
+    public function bulkUpdateDone(Request $request)
+    {
+        $request->validate([
+            'record_ids' => 'required|array',
+            'record_ids.*' => 'required|integer|exists:reward_punishment_records,id',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $user = $request->user();
+        $teacher = $user->teacher;
+
+        if (!$teacher) {
+            return response()->json(['message' => 'Teacher record not found'], 404);
+        }
+
+        $recordIds = $request->record_ids;
+        $notes = $request->notes ?? 'Hukuman telah dieksekusi melalui sistem absensi (bulk update)';
+
+        // Check if all records belong to the teacher and are pending
+        $records = RewardPunishmentRecord::whereIn('id', $recordIds)
+            ->where('teacher_id', $teacher->id)
+            ->where('status', 'pending')
+            ->get();
+
+        if ($records->count() !== count($recordIds)) {
+            return response()->json(['message' => 'Some records are not found, not owned by you, or not pending'], 400);
+        }
+
+        DB::transaction(function () use ($records, $notes) {
+            foreach ($records as $record) {
+                $record->update([
+                    'status' => 'done',
+                    'notes' => $notes,
+                ]);
+
+                // Update the corresponding log
+                RewardPunishmentLog::where('student_id', $record->student_id)
+                    ->where('rules_id', $record->rule_id)
+                    ->where('date', $record->given_date)
+                    ->where('status', 'PENDING')
+                    ->update(['status' => 'DONE']);
+            }
+        });
+
+        return response()->json([
+            'message' => 'Records updated successfully',
+            'updated_count' => $records->count(),
+        ]);
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy(RewardPunishmentRecord $rewardPunishmentRecord)

@@ -58,6 +58,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('reward-punishment-logs', RewardPunishmentLogController::class);
     Route::apiResource('reward-punishment-records', RewardPunishmentRecordController::class);
     Route::get('reward-punishment-records/students/list', [RewardPunishmentRecordController::class, 'studentsWithRecords']);
+    Route::post('reward-punishment-records/bulk-update-done', [RewardPunishmentRecordController::class, 'bulkUpdateDone']);
     Route::get('student-points/monthly-report', [StudentPointController::class, 'monthlyReport']);
 
     // Media routes for serving images (no auth required for images)

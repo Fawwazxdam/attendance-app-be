@@ -29,7 +29,7 @@ class DashboardController extends Controller
 
             // Today's attendance stats
             $todayAttendance = Attendance::where('date', $today)->get();
-            $present = $todayAttendance->where('status', 'present')->count();
+            $present = $todayAttendance->whereIn('status', ['present', 'excused'])->count();
             $late = $todayAttendance->where('status', 'late')->count();
             $absent = $totalStudents - ($present + $late);
             $attendanceRate = $totalStudents > 0 ? round((($present + $late) / $totalStudents) * 100, 1) : 0;
@@ -39,7 +39,7 @@ class DashboardController extends Controller
             for ($i = 6; $i >= 0; $i--) {
                 $date = Carbon::today()->subDays($i)->toDateString();
                 $dayAttendance = Attendance::where('date', $date)->get();
-                $dayPresent = $dayAttendance->where('status', 'present')->count();
+                $dayPresent = $dayAttendance->whereIn('status', ['present', 'excused'])->count();
                 $dayLate = $dayAttendance->where('status', 'late')->count();
                 $dayAbsent = $totalStudents - ($dayPresent + $dayLate);
 
@@ -96,7 +96,7 @@ class DashboardController extends Controller
                 ->whereYear('date', $currentYear)
                 ->get();
 
-            $monthlyPresent = $monthlyAttendance->where('status', 'present')->count();
+            $monthlyPresent = $monthlyAttendance->whereIn('status', ['present', 'excused'])->count();
             $monthlyLate = $monthlyAttendance->where('status', 'late')->count();
             $totalDays = Carbon::now()->day; // Days so far this month
             $monthlyRate = $totalDays > 0 ? round((($monthlyPresent + $monthlyLate) / $totalDays) * 100, 1) : 0;
@@ -168,7 +168,7 @@ class DashboardController extends Controller
                 })->where('date', $today)->get();
 
                 $totalStudents = $grade->students->count();
-                $present = $classAttendance->where('status', 'present')->count();
+                $present = $classAttendance->whereIn('status', ['present', 'excused'])->count();
                 $late = $classAttendance->where('status', 'late')->count();
                 $absent = $totalStudents - ($present + $late);
 
@@ -209,7 +209,7 @@ class DashboardController extends Controller
                     });
                 })->whereMonth('date', $month)->whereYear('date', $year)->get();
 
-                $totalPresent = $monthlyAttendance->where('status', 'present')->count();
+                $totalPresent = $monthlyAttendance->whereIn('status', ['present', 'excused'])->count();
                 $totalLate = $monthlyAttendance->where('status', 'late')->count();
                 $totalRecords = $monthlyAttendance->count();
 
@@ -257,7 +257,7 @@ class DashboardController extends Controller
             $today = Carbon::today()->toDateString();
             $todayAttendance = Attendance::where('date', $today)->get();
 
-            $present = $todayAttendance->where('status', 'present')->count();
+            $present = $todayAttendance->whereIn('status', ['present', 'excused'])->count();
             $late = $todayAttendance->where('status', 'late')->count();
             $absent = $totalStudents - ($present + $late);
 
@@ -331,7 +331,7 @@ class DashboardController extends Controller
                         ->where('date', $date)
                         ->get();
 
-                    $presentRecords = $dailyAttendance->where('status', 'present');
+                    $presentRecords = $dailyAttendance->whereIn('status', ['present', 'excused']);
                     $lateRecords = $dailyAttendance->where('status', 'late');
 
                     $labels[] = Carbon::parse($date)->format('M d');
@@ -359,7 +359,7 @@ class DashboardController extends Controller
 
                     $labels[] = $date->format('M Y');
                     $data[] = [
-                        'present' => $monthlyData['present'] ?? 0,
+                        'present' => ($monthlyData['present'] ?? 0) + ($monthlyData['excused'] ?? 0),
                         'late' => $monthlyData['late'] ?? 0,
                         'absent' => $monthlyData['absent'] ?? 0
                     ];
@@ -424,7 +424,7 @@ class DashboardController extends Controller
                 })->whereMonth('date', $month)->whereYear('date', $year)->get();
 
                 $totalStudents = $grade->students->count();
-                $present = $gradeAttendance->where('status', 'present')->count();
+                $present = $gradeAttendance->whereIn('status', ['present', 'excused'])->count();
                 $late = $gradeAttendance->where('status', 'late')->count();
 
                 $attendanceRate = $totalStudents > 0 ? round((($present + $late) / $totalStudents) * 100, 1) : 0;
@@ -508,7 +508,7 @@ class DashboardController extends Controller
 
                     $labels[] = $startOfWeek->format('M d') . ' - ' . $endOfWeek->format('M d');
                     $data[] = [
-                        'present' => $weeklyAttendance['present'] ?? 0,
+                        'present' => ($weeklyAttendance['present'] ?? 0) + ($weeklyAttendance['excused'] ?? 0),
                         'late' => $weeklyAttendance['late'] ?? 0,
                         'absent' => $weeklyAttendance['absent'] ?? 0
                     ];
@@ -527,7 +527,7 @@ class DashboardController extends Controller
 
                     $labels[] = $year;
                     $data[] = [
-                        'present' => $yearlyAttendance['present'] ?? 0,
+                        'present' => ($yearlyAttendance['present'] ?? 0) + ($yearlyAttendance['excused'] ?? 0),
                         'late' => $yearlyAttendance['late'] ?? 0,
                         'absent' => $yearlyAttendance['absent'] ?? 0
                     ];
@@ -583,7 +583,7 @@ class DashboardController extends Controller
         while (true) {
             $attendance = Attendance::where('student_id', $studentId)
                 ->where('date', $date->toDateString())
-                ->whereIn('status', ['present', 'late'])
+                ->whereIn('status', ['present', 'late', 'excused'])
                 ->first();
 
             if ($attendance) {
@@ -622,7 +622,7 @@ class DashboardController extends Controller
     private function getLastAttendanceDate($studentId)
     {
         $lastAttendance = Attendance::where('student_id', $studentId)
-            ->whereIn('status', ['present', 'late'])
+            ->whereIn('status', ['present', 'late', 'excused'])
             ->orderBy('date', 'desc')
             ->first();
 

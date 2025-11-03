@@ -65,11 +65,47 @@ class AttendanceController extends Controller
                 'attendances' => $attendances->toArray()
             ]);
 
-            // Add points_earned to each attendance
+            // Add points_earned to each attendance and load punishment records
             $attendances->transform(function ($attendance) {
                 $attendance->points_earned = $this->calculatePointsEarned($attendance->status);
+                // Rename status to attendance_status to avoid conflict with punishment record status
+                $attendance->attendance_status = $attendance->status;
+                unset($attendance->status);
                 return $attendance;
             });
+
+            // Load punishment records for late attendances
+            $lateAttendances = $attendances->where('attendance_status', 'late');
+            if ($lateAttendances->count() > 0) {
+                $studentIds = $lateAttendances->pluck('student_id')->filter()->toArray();
+                Log::info('Loading punishment records for students:', ['student_ids' => $studentIds]);
+
+                $punishmentRecords = RewardPunishmentRecord::whereIn('student_id', $studentIds)
+                    ->where('status', 'pending')
+                    ->where('type', 'punishment')
+                    ->whereHas('rule', function ($query) {
+                        $query->where('name', 'Attendance - Late');
+                    })
+                    ->with(['rule', 'teacher'])
+                    ->get();
+
+                Log::info('Found punishment records:', ['count' => $punishmentRecords->count(), 'records' => $punishmentRecords->toArray()]);
+
+                $punishmentRecordsGrouped = $punishmentRecords->groupBy('student_id');
+
+                // Attach punishment records to attendances
+                $attendances->transform(function ($attendance) use ($punishmentRecordsGrouped) {
+                    if ($attendance->attendance_status === 'late' && $attendance->student_id && isset($punishmentRecordsGrouped[$attendance->student_id])) {
+                        $attendance->punishmentRecords = $punishmentRecordsGrouped[$attendance->student_id];
+                        Log::info('Attached punishment records to attendance:', [
+                            'attendance_id' => $attendance->id,
+                            'student_id' => $attendance->student_id,
+                            'records_count' => $punishmentRecordsGrouped[$attendance->student_id]->count()
+                        ]);
+                    }
+                    return $attendance;
+                });
+            }
 
             return response()->json([
                 'date' => $parsedDate,

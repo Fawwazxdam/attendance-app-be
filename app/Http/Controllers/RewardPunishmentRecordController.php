@@ -74,16 +74,16 @@ class RewardPunishmentRecordController extends Controller
         ]);
 
         $user = $request->user();
-        $teacher = $user->teacher;
+        // $teacher = $user->teacher;
 
-        if (!$teacher) {
-            return response()->json(['message' => 'Teacher record not found'], 404);
-        }
+        // if (!$teacher) {
+        //     return response()->json(['message' => 'Teacher record not found'], 404);
+        // }
 
-        // Check if the teacher owns this record
-        if ($rewardPunishmentRecord->teacher_id !== $teacher->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        // // Check if the teacher owns this record
+        // if ($rewardPunishmentRecord->teacher_id !== $teacher->id) {
+        //     return response()->json(['message' => 'Unauthorized'], 403);
+        // }
 
         // Only allow updating pending records
         if ($rewardPunishmentRecord->status !== 'pending') {

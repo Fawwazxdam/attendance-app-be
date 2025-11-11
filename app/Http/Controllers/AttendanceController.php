@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Attendance;
 use App\Models\AttendanceJournal;
+use App\Models\Student;
 use App\Models\StudentPoint;
 use App\Models\RewardPunishmentLog;
 use App\Models\RewardPunishmentRule;
@@ -41,6 +42,22 @@ class AttendanceController extends Controller
 
         if (!$student) {
             // If not a student (teachers and administrators), return all attendances
+            // Check if attendances exist for this date
+            $existingAttendancesCount = Attendance::where('date', $parsedDate)->count();
+
+            if ($existingAttendancesCount == 0 && in_array($user->role, ['administrator', 'teacher'])) {
+                // Bulk insert 'absent' records for all students
+                $students = Student::all();
+                foreach ($students as $student) {
+                    Attendance::create([
+                        'student_id' => $student->id,
+                        'date' => $parsedDate,
+                        'status' => 'absent',
+                        'remarks' => 'Auto-generated absent record',
+                    ]);
+                }
+            }
+
             $query = Attendance::where('date', $parsedDate)
                 ->with('student:id,fullname,grade_id', 'student.studentPoint', 'student.grade', 'user:id,name,email', 'medias');
 
@@ -81,7 +98,7 @@ class AttendanceController extends Controller
                 Log::info('Loading punishment records for students:', ['student_ids' => $studentIds]);
 
                 $punishmentRecords = RewardPunishmentRecord::whereIn('student_id', $studentIds)
-                    ->where('status', 'pending')
+                    ->whereIn('status', ['pending', 'done'])
                     ->where('type', 'punishment')
                     ->whereHas('rule', function ($query) {
                         $query->where('name', 'Attendance - Late');
@@ -236,7 +253,7 @@ class AttendanceController extends Controller
                 ->where('date', $today)
                 ->first();
 
-            if ($existingAttendance) {
+            if ($existingAttendance && $existingAttendance->status !== 'absent') {
                 return response()->json(['message' => 'Attendance already submitted for today'], 409);
             }
 
@@ -254,13 +271,14 @@ class AttendanceController extends Controller
                     $status = 'excused';
                 }
 
-                // Create attendance
-                $attendance = Attendance::create([
-                    'student_id' => $student->id,
-                    'date' => $today,
-                    'status' => $status,
-                    'remarks' => $request->remarks,
-                ]);
+                // Create or update attendance
+                $attendance = Attendance::updateOrCreate(
+                    ['student_id' => $student->id, 'date' => $today],
+                    [
+                        'status' => $status,
+                        'remarks' => $request->remarks,
+                    ]
+                );
 
                 // Handle image uploads
                 if ($request->hasFile('images')) {

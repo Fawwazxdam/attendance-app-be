@@ -29,9 +29,9 @@ class DashboardController extends Controller
 
             // Today's attendance stats
             $todayAttendance = Attendance::where('date', $today)->get();
-            $present = $todayAttendance->whereIn('status', ['present', 'excused'])->count();
+            $present = $todayAttendance->whereIn('status', ['present', 'excused', 'late'])->count();
             $late = $todayAttendance->where('status', 'late')->count();
-            $absent = $totalStudents - ($present + $late);
+            $absent = $totalStudents - ($present);
             $attendanceRate = $totalStudents > 0 ? round((($present + $late) / $totalStudents) * 100, 1) : 0;
 
             // Weekly trend (last 7 days)

@@ -14,6 +14,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\AttendanceExport;
 
 class AttendanceController extends Controller
 {
@@ -144,6 +146,118 @@ class AttendanceController extends Controller
             'date' => $parsedDate,
             'attendance' => $attendance,
         ]);
+    }
+
+    /**
+     * Export attendances to Excel.
+     */
+    public function export(Request $request)
+    {
+        $date = $request->query('date');
+        $status = $request->query('status');
+        $gradeId = $request->query('grade_id');
+
+        if (!$date) {
+            return response()->json(['message' => 'Date parameter is required'], 400);
+        }
+
+        // Validate date format
+        try {
+            $parsedDate = Carbon::createFromFormat('Y-m-d', $date)->toDateString();
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Invalid date format. Use Y-m-d'], 400);
+        }
+
+        $user = $request->user();
+        $student = $user->student;
+
+        if (!$student) {
+            // If not a student (teachers and administrators), return all attendances
+            // Check if attendances exist for this date
+            $existingAttendancesCount = Attendance::where('date', $parsedDate)->count();
+
+            if ($existingAttendancesCount == 0 && in_array($user->role, ['administrator', 'teacher'])) {
+                // Bulk insert 'absent' records for all students
+                $students = Student::all();
+                foreach ($students as $student) {
+                    Attendance::create([
+                        'student_id' => $student->id,
+                        'date' => $parsedDate,
+                        'status' => 'absent',
+                        'remarks' => 'Auto-generated absent record',
+                    ]);
+                }
+            }
+
+            $query = Attendance::where('date', $parsedDate)
+                ->with('student:id,fullname,grade_id', 'student.studentPoint', 'student.grade', 'user:id,name,email', 'medias');
+
+            // Apply status filter if provided
+            if ($status) {
+                $query->where('status', $status);
+            }
+
+            // Apply grade filter if provided
+            if ($gradeId) {
+                $query->whereHas('student', function ($q) use ($gradeId) {
+                    $q->where('grade_id', $gradeId);
+                });
+            }
+
+            $attendances = $query->get();
+
+            // Add points_earned to each attendance and load punishment records
+            $attendances->transform(function ($attendance) {
+                $attendance->points_earned = $this->calculatePointsEarned($attendance->status);
+                // Rename status to attendance_status to avoid conflict with punishment record status
+                $attendance->attendance_status = $attendance->status;
+                unset($attendance->status);
+                return $attendance;
+            });
+
+            // Load punishment records for late attendances
+            $lateAttendances = $attendances->where('attendance_status', 'late');
+            if ($lateAttendances->count() > 0) {
+                $studentIds = $lateAttendances->pluck('student_id')->filter()->toArray();
+
+                $punishmentRecords = RewardPunishmentRecord::whereIn('student_id', $studentIds)
+                    ->whereIn('status', ['pending', 'done'])
+                    ->where('type', 'punishment')
+                    ->whereHas('rule', function ($query) {
+                        $query->where('name', 'Attendance - Late');
+                    })
+                    ->with(['rule', 'teacher'])
+                    ->get();
+
+                $punishmentRecordsGrouped = $punishmentRecords->groupBy('student_id');
+
+                // Attach punishment records to attendances
+                $attendances->transform(function ($attendance) use ($punishmentRecordsGrouped) {
+                    if ($attendance->attendance_status === 'late' && $attendance->student_id && isset($punishmentRecordsGrouped[$attendance->student_id])) {
+                        $attendance->punishmentRecords = $punishmentRecordsGrouped[$attendance->student_id];
+                    }
+                    return $attendance;
+                });
+            }
+
+            return Excel::download(new AttendanceExport($attendances, $parsedDate), 'attendances_' . $parsedDate . '.xlsx');
+        }
+
+        // For students, export their own attendance
+        $attendance = Attendance::where('student_id', $student->id)
+            ->where('date', $parsedDate)
+            ->with('student:id,fullname,grade_id', 'student.studentPoint', 'student.grade', 'medias')
+            ->first();
+
+        $attendances = collect();
+        if ($attendance) {
+            $attendance->points_earned = $this->calculatePointsEarned($attendance->status);
+            $attendance->attendance_status = $attendance->status;
+            unset($attendance->status);
+            $attendances->push($attendance);
+        }
+
+        return Excel::download(new AttendanceExport($attendances, $parsedDate), 'attendance_' . $parsedDate . '.xlsx');
     }
 
     /**

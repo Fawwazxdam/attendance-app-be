@@ -67,7 +67,7 @@ class RewardPunishmentRuleSeeder extends Seeder
                 'type' => 'punishment',
                 'name' => 'Terlambat',
                 'points' => -5,
-                'description' => 'Terlambat 16–30 menit dari bel berbunyi. Mendapat pengurangan poin.',
+                'description' => 'Terlambat 16-30 menit dari bel berbunyi. Mendapat pengurangan poin.',
             ],
             [
                 'type' => 'punishment',

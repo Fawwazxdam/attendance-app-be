@@ -15,18 +15,18 @@ class SchoolSeeder extends Seeder
         // --- ADMIN USER ---
         $adminUuid = (string) Str::uuid();
 
-        // DB::table('users')->insert([
-        //     'uuid' => $adminUuid,
-        //     'name' => 'Administrator',
-        //     'username' => 'admin',
-        //     'email' => 'admin@g.c',
-        //     'email_verified_at' => Carbon::now(),
-        //     'password' => Hash::make('password'),
-        //     'role' => 'administrator',
-        //     'remember_token' => Str::random(10),
-        //     'created_at' => Carbon::now(),
-        //     'updated_at' => Carbon::now(),
-        // ]);
+        DB::table('users')->insert([
+            'uuid' => $adminUuid,
+            'name' => 'Administrator',
+            'username' => 'admin',
+            'email' => 'admin@g.c',
+            'email_verified_at' => Carbon::now(),
+            'password' => Hash::make('password'),
+            'role' => 'administrator',
+            'remember_token' => Str::random(10),
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
+        ]);
 
         // --- teachers users data (will be created first) ---
         $teachers = [

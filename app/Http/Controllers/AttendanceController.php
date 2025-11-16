@@ -57,6 +57,9 @@ class AttendanceController extends Controller
                         'status' => 'absent',
                         'remarks' => 'Auto-generated absent record',
                     ]);
+
+                    // Apply punishment for absent
+                    $this->applyAttendanceRewardPunishment($student, 'absent', $parsedDate);
                 }
             }
 
@@ -93,17 +96,17 @@ class AttendanceController extends Controller
                 return $attendance;
             });
 
-            // Load punishment records for late attendances
-            $lateAttendances = $attendances->where('attendance_status', 'late');
-            if ($lateAttendances->count() > 0) {
-                $studentIds = $lateAttendances->pluck('student_id')->filter()->toArray();
+            // Load punishment records for late and absent attendances
+            $punishableAttendances = $attendances->whereIn('attendance_status', ['late', 'absent']);
+            if ($punishableAttendances->count() > 0) {
+                $studentIds = $punishableAttendances->pluck('student_id')->filter()->toArray();
                 Log::info('Loading punishment records for students:', ['student_ids' => $studentIds]);
 
                 $punishmentRecords = RewardPunishmentRecord::whereIn('student_id', $studentIds)
                     ->whereIn('status', ['pending', 'done'])
                     ->where('type', 'punishment')
                     ->whereHas('rule', function ($query) {
-                        $query->where('name', 'Attendance - Late');
+                        $query->whereIn('name', ['Terlambat', 'Tidak Hadir']);
                     })
                     ->with(['rule', 'teacher'])
                     ->get();
@@ -114,7 +117,7 @@ class AttendanceController extends Controller
 
                 // Attach punishment records to attendances
                 $attendances->transform(function ($attendance) use ($punishmentRecordsGrouped) {
-                    if ($attendance->attendance_status === 'late' && $attendance->student_id && isset($punishmentRecordsGrouped[$attendance->student_id])) {
+                    if (in_array($attendance->attendance_status, ['late', 'absent']) && $attendance->student_id && isset($punishmentRecordsGrouped[$attendance->student_id])) {
                         $attendance->punishmentRecords = $punishmentRecordsGrouped[$attendance->student_id];
                         Log::info('Attached punishment records to attendance:', [
                             'attendance_id' => $attendance->id,
@@ -186,6 +189,9 @@ class AttendanceController extends Controller
                         'status' => 'absent',
                         'remarks' => 'Auto-generated absent record',
                     ]);
+
+                    // Apply punishment for absent
+                    $this->applyAttendanceRewardPunishment($student, 'absent', $parsedDate);
                 }
             }
 
@@ -215,16 +221,16 @@ class AttendanceController extends Controller
                 return $attendance;
             });
 
-            // Load punishment records for late attendances
-            $lateAttendances = $attendances->where('attendance_status', 'late');
-            if ($lateAttendances->count() > 0) {
-                $studentIds = $lateAttendances->pluck('student_id')->filter()->toArray();
+            // Load punishment records for late and absent attendances
+            $punishableAttendances = $attendances->whereIn('attendance_status', ['late', 'absent']);
+            if ($punishableAttendances->count() > 0) {
+                $studentIds = $punishableAttendances->pluck('student_id')->filter()->toArray();
 
                 $punishmentRecords = RewardPunishmentRecord::whereIn('student_id', $studentIds)
                     ->whereIn('status', ['pending', 'done'])
                     ->where('type', 'punishment')
                     ->whereHas('rule', function ($query) {
-                        $query->where('name', 'Attendance - Late');
+                        $query->whereIn('name', ['Terlambat', 'Tidak Hadir']);
                     })
                     ->with(['rule', 'teacher'])
                     ->get();
@@ -233,7 +239,7 @@ class AttendanceController extends Controller
 
                 // Attach punishment records to attendances
                 $attendances->transform(function ($attendance) use ($punishmentRecordsGrouped) {
-                    if ($attendance->attendance_status === 'late' && $attendance->student_id && isset($punishmentRecordsGrouped[$attendance->student_id])) {
+                    if (in_array($attendance->attendance_status, ['late', 'absent']) && $attendance->student_id && isset($punishmentRecordsGrouped[$attendance->student_id])) {
                         $attendance->punishmentRecords = $punishmentRecordsGrouped[$attendance->student_id];
                     }
                     return $attendance;
@@ -521,11 +527,16 @@ class AttendanceController extends Controller
 
         if ($status === 'present') {
             $points = 5;
-            $ruleName = 'Attendance - Present';
+            $ruleName = 'Tepat Waktu';
             $type = 'reward';
         } elseif ($status === 'late') {
             $points = -5;
-            $ruleName = 'Attendance - Late';
+            $ruleName = 'Terlambat';
+            $type = 'punishment';
+            $logStatus = 'PENDING';
+        } elseif ($status === 'absent') {
+            $points = -15;
+            $ruleName = 'Tidak Hadir';
             $type = 'punishment';
             $logStatus = 'PENDING';
         } elseif ($status === 'excused') {

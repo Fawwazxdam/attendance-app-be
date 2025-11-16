@@ -75,6 +75,12 @@ class RewardPunishmentRuleSeeder extends Seeder
                 'points' => -10,
                 'description' => 'Terlambat lebih dari 30 menit dari bel berbunyi. Mendapat pengurangan poin lebih besar.',
             ],
+            [
+                'type' => 'punishment',
+                'name' => 'Tidak Hadir',
+                'points' => -15,
+                'description' => 'Tidak hadir tanpa alasan yang sah. Mendapat pengurangan poin besar.',
+            ],
         ];
         foreach ($rules as $rule) {
             RewardPunishmentRule::firstOrCreate(

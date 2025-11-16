@@ -201,18 +201,18 @@ class RewardPunishmentRecordController extends Controller
         ]);
 
         $user = $request->user();
-        $teacher = $user->teacher;
+        // $teacher = $user->teacher;
 
-        if (!$teacher) {
-            return response()->json(['message' => 'Teacher record not found'], 404);
-        }
+        // if (!$teacher) {
+        //     return response()->json(['message' => 'Teacher record not found'], 404);
+        // }
 
         $recordIds = $request->record_ids;
         $notes = $request->notes ?? 'Hukuman telah dieksekusi melalui sistem absensi (bulk update)';
 
         // Check if all records belong to the teacher and are pending
         $records = RewardPunishmentRecord::whereIn('id', $recordIds)
-            ->where('teacher_id', $teacher->id)
+            // ->where('teacher_id', $teacher->id)
             ->where('status', 'pending')
             ->get();
 

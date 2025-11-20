@@ -46,8 +46,10 @@ class AttendanceController extends Controller
             // If not a student (teachers and administrators), return all attendances
             // Check if attendances exist for this date
             $existingAttendancesCount = Attendance::where('date', $parsedDate)->count();
+            $today = Carbon::today('Asia/Jakarta')->toDateString();
 
-            if ($existingAttendancesCount == 0 && in_array($user->role, ['administrator', 'teacher'])) {
+            // Only auto-generate absent records for today or future dates, not past dates
+            if ($existingAttendancesCount == 0 && in_array($user->role, ['administrator', 'teacher']) && $parsedDate >= $today) {
                 // Bulk insert 'absent' records for all students
                 $students = Student::all();
                 foreach ($students as $student) {
@@ -178,8 +180,10 @@ class AttendanceController extends Controller
             // If not a student (teachers and administrators), return all attendances
             // Check if attendances exist for this date
             $existingAttendancesCount = Attendance::where('date', $parsedDate)->count();
+            $today = Carbon::today('Asia/Jakarta')->toDateString();
 
-            if ($existingAttendancesCount == 0 && in_array($user->role, ['administrator', 'teacher'])) {
+            // Only auto-generate absent records for today or future dates, not past dates
+            if ($existingAttendancesCount == 0 && in_array($user->role, ['administrator', 'teacher']) && $parsedDate >= $today) {
                 // Bulk insert 'absent' records for all students
                 $students = Student::all();
                 foreach ($students as $student) {

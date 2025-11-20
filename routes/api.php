@@ -14,6 +14,7 @@ use App\Http\Controllers\RewardPunishmentRuleController;
 use App\Http\Controllers\RewardPunishmentLogController;
 use App\Http\Controllers\RewardPunishmentRecordController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DeveloperController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
@@ -21,6 +22,9 @@ use Illuminate\Support\Facades\Log;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+
+// Developer routes (no auth required)
+Route::post('/developer/update-timezone', [DeveloperController::class, 'updateTimezone']);
 
 Route::get('/user', function (Request $request) {
     $user = $request->user();

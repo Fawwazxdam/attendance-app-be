@@ -29,7 +29,7 @@ class AttendanceExport implements FromCollection, WithHeadings, WithStyles
                 'Student Name' => $attendance->student ? $attendance->student->fullname : 'N/A',
                 'Grade' => $attendance->student && $attendance->student->grade ? $attendance->student->grade->name : 'N/A',
                 'Status' => $attendance->attendance_status,
-                'Attendance Time' => $attendance->created_at ? \Carbon\Carbon::parse($attendance->created_at)->format('H:i:s') : 'N/A',
+                'Attendance Time' => $attendance->updated_at ? \Carbon\Carbon::parse($attendance->updated_at)->format('H:i:s') : 'N/A',
                 'Points Earned' => $attendance->points_earned,
                 'Total Points' => $attendance->student && $attendance->student->studentPoint ? $attendance->student->studentPoint->total_points : ($attendance->user ? 'N/A' : 0),
                 'Remarks' => $attendance->remarks ?? '',

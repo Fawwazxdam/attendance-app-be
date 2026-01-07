@@ -26,6 +26,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanc
 // Developer routes (no auth required)
 Route::post('/developer/update-timezone', [DeveloperController::class, 'updateTimezone']);
 Route::post('/developer/rollback-attendance', [DeveloperController::class, 'rollbackAttendanceByDate']);
+Route::post('/developer/set-attendance-time-0645', [DeveloperController::class, 'setAttendanceTimeTo0645']);
 
 Route::get('/user', function (Request $request) {
     $user = $request->user();

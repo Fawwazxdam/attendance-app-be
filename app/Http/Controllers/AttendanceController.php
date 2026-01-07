@@ -331,13 +331,20 @@ class AttendanceController extends Controller
                                 throw new \Exception('Invalid image file');
                             }
 
+                            $fileSize = $image->getSize();
+                            Log::info('Uploading admin image', [
+                                'filename' => $image->getClientOriginalName(),
+                                'size' => $fileSize,
+                                'mime_type' => $image->getMimeType(),
+                            ]);
+
                             $path = $image->store('attendance_images', 'public');
 
                             Media::create([
                                 'path' => $path,
                                 'filename' => $image->getClientOriginalName(),
                                 'mime_type' => $image->getMimeType(),
-                                'size' => $image->getSize(),
+                                'size' => $fileSize,
                                 'morphable_type' => Attendance::class,
                                 'morphable_id' => $attendance->id,
                             ]);
@@ -414,6 +421,13 @@ class AttendanceController extends Controller
                             throw new \Exception('Invalid image file');
                         }
 
+                        $fileSize = $image->getSize();
+                        Log::info('Uploading image', [
+                            'filename' => $image->getClientOriginalName(),
+                            'size' => $fileSize,
+                            'mime_type' => $image->getMimeType(),
+                        ]);
+
                         // Store the image
                         $path = $image->store('attendance_images', 'public');
 
@@ -422,7 +436,7 @@ class AttendanceController extends Controller
                             'path' => $path,
                             'filename' => $image->getClientOriginalName(),
                             'mime_type' => $image->getMimeType(),
-                            'size' => $image->getSize(),
+                            'size' => $fileSize,
                             'morphable_type' => Attendance::class,
                             'morphable_id' => $attendance->id,
                         ]);

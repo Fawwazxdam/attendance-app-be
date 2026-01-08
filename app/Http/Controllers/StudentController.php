@@ -62,6 +62,9 @@ class StudentController extends Controller
             'phone_number' => 'nullable|string|max:255',
             'image' => 'nullable|string|max:255',
             'self_contract' => 'nullable|string',
+            'late_free_streak' => 'sometimes|integer|min:0',
+            'pending_reward' => 'nullable|string',
+            'reward_eligible' => 'sometimes|boolean',
         ]);
 
         $student->update($request->all());

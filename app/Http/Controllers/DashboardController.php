@@ -129,6 +129,7 @@ class DashboardController extends Controller
                     'personal_stats' => [
                         'monthly_attendance_rate' => $monthlyRate,
                         'current_streak' => $currentStreak,
+                        'late_free_streak' => $student->late_free_streak,
                         'total_points' => $student->studentPoint ? $student->studentPoint->total_points : 0
                     ],
                     'recent_attendance' => $recentAttendance,

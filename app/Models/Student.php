@@ -20,6 +20,9 @@ class Student extends Model
         'phone_number',
         'image',
         'self_contract',
+        'late_free_streak',
+        'pending_reward',
+        'reward_eligible',
     ];
 
     protected static function boot()

@@ -452,6 +452,19 @@ class AttendanceController extends Controller
                 // Apply reward/punishment based on attendance status
                 $this->applyAttendanceRewardPunishment($student, $status, $today);
 
+                // Update late-free streak
+                if ($status !== 'late') {
+                    $student->late_free_streak += 1;
+                    // Set reward eligible if streak reaches 5
+                    if ($student->late_free_streak >= 5 && !$student->reward_eligible) {
+                        $student->reward_eligible = true;
+                    }
+                } else {
+                    $student->late_free_streak = 0;
+                    $student->reward_eligible = false; // Reset eligibility if late
+                }
+                $student->save();
+
                 return $attendance;
             });
 
@@ -505,7 +518,16 @@ class AttendanceController extends Controller
      */
     public function update(Request $request, Attendance $attendance)
     {
-        //
+        $request->validate([
+            'late_reason' => 'nullable|string|max:1000',
+        ]);
+
+        $attendance->update($request->only(['late_reason']));
+
+        return response()->json([
+            'success' => true,
+            'data' => $attendance->load('student', 'student.studentPoint', 'medias')
+        ]);
     }
 
     /**

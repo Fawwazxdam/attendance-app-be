@@ -13,6 +13,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\RewardPunishmentRuleController;
 use App\Http\Controllers\RewardPunishmentLogController;
 use App\Http\Controllers\RewardPunishmentRecordController;
+use App\Http\Controllers\StimulusControlController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeveloperController;
 use Illuminate\Http\Request;
@@ -66,6 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('reward-punishment-records', RewardPunishmentRecordController::class);
     Route::get('reward-punishment-records/students/list', [RewardPunishmentRecordController::class, 'studentsWithRecords']);
     Route::post('reward-punishment-records/bulk-update-done', [RewardPunishmentRecordController::class, 'bulkUpdateDone']);
+    Route::apiResource('stimulus-controls', StimulusControlController::class);
     Route::get('student-points/monthly-report', [StudentPointController::class, 'monthlyReport']);
 
     // Media routes for serving images (no auth required for images)

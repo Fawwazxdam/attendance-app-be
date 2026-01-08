@@ -19,6 +19,7 @@ class Student extends Model
         'address',
         'phone_number',
         'image',
+        'self_contract',
     ];
 
     protected static function boot()

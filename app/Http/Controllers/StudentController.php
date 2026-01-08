@@ -61,6 +61,7 @@ class StudentController extends Controller
             'address' => 'nullable|string',
             'phone_number' => 'nullable|string|max:255',
             'image' => 'nullable|string|max:255',
+            'self_contract' => 'nullable|string',
         ]);
 
         $student->update($request->all());

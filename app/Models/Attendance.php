@@ -17,6 +17,7 @@ class Attendance extends Model
         'date',
         'status',
         'remarks',
+        'late_reason',
     ];
 
     protected static function boot()

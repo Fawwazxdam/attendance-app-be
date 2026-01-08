@@ -462,6 +462,11 @@ class AttendanceController extends Controller
                 } else {
                     $student->late_free_streak = 0;
                     $student->reward_eligible = false; // Reset eligibility if late
+                    // Set stimulus control revision flag if student has stimulus control
+                    $hasStimulusControl = \App\Models\StimulusControl::where('student_id', $student->id)->exists();
+                    if ($hasStimulusControl) {
+                        $student->stimulus_control_needs_revision = true;
+                    }
                 }
                 $student->save();
 

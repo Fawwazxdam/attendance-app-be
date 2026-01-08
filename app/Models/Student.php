@@ -23,6 +23,7 @@ class Student extends Model
         'late_free_streak',
         'pending_reward',
         'reward_eligible',
+        'stimulus_control_needs_revision',
     ];
 
     protected static function boot()

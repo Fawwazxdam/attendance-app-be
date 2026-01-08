@@ -65,6 +65,7 @@ class StudentController extends Controller
             'late_free_streak' => 'sometimes|integer|min:0',
             'pending_reward' => 'nullable|string',
             'reward_eligible' => 'sometimes|boolean',
+            'stimulus_control_needs_revision' => 'sometimes|boolean',
         ]);
 
         $student->update($request->all());

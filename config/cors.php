@@ -19,11 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        'http://localhost:3010',
-        // 'https://dev.attendance-app.magentaa.space',
-        'https://attendance-app-kohl-six.vercel.app'
-    ],
+    'allowed_origins' => ['*'],
 
     'allowed_origins_patterns' => [],
 
@@ -33,6 +29,6 @@ return [
 
     'max_age' => null,
 
-    'supports_credentials' => true,
+    'supports_credentials' => false,
 
 ];

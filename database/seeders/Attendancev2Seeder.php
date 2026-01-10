@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
-class AttendanceSeeder extends Seeder
+class Attendancev2Seeder extends Seeder
 {
     private string $tz = 'Asia/Jakarta';
 

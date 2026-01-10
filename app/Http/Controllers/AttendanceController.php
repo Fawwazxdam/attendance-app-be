@@ -536,6 +536,65 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Get late attendances with reasons for the authenticated user.
+     * For students: returns their own late attendances
+     * For admins/teachers: returns all students' late attendances grouped by student
+     */
+    public function getLateReasons(Request $request)
+    {
+        $user = $request->user();
+        $student = $user->student;
+
+        if ($student) {
+            // Student view: return their own late attendances
+            $lateAttendances = Attendance::where('student_id', $student->id)
+                ->where('status', 'late')
+                ->whereNotNull('late_reason')
+                ->orderBy('date', 'desc')
+                ->get(['id', 'date', 'late_reason', 'updated_at']);
+
+            return response()->json([
+                'late_attendances' => $lateAttendances,
+                'is_admin' => false,
+            ]);
+        } else {
+            // Admin/Teacher view: return all students with their total lates
+            $students = \App\Models\Student::with('grade:id,name')
+                ->select('id', 'fullname', 'grade_id')
+                ->get()
+                ->map(function ($student) {
+                    $totalLates = Attendance::where('student_id', $student->id)
+                        ->where('status', 'late')
+                        ->whereNotNull('late_reason')
+                        ->count();
+
+                    return [
+                        'student' => $student,
+                        'total_lates' => $totalLates,
+                        'late_attendances' => $totalLates > 0 ? Attendance::where('student_id', $student->id)
+                            ->where('status', 'late')
+                            ->whereNotNull('late_reason')
+                            ->orderBy('date', 'desc')
+                            ->get(['id', 'date', 'late_reason', 'updated_at'])
+                            ->map(function ($attendance) {
+                                return [
+                                    'id' => $attendance->id,
+                                    'date' => $attendance->date,
+                                    'late_reason' => $attendance->late_reason,
+                                    'updated_at' => $attendance->updated_at,
+                                ];
+                            }) : [],
+                    ];
+                });
+
+            return response()->json([
+                'students_data' => $students,
+                'is_admin' => true,
+            ]);
+        }
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy(Attendance $attendance)

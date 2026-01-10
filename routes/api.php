@@ -61,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('faqs', FaqController::class);
     Route::apiResource('contacts', ContactController::class);
     Route::get('attendances/export', [AttendanceController::class, 'export']);
+    Route::get('attendances/late-reasons', [AttendanceController::class, 'getLateReasons']);
     Route::apiResource('attendances', AttendanceController::class);
     Route::apiResource('reward-punishment-rules', RewardPunishmentRuleController::class);
     Route::apiResource('reward-punishment-logs', RewardPunishmentLogController::class);

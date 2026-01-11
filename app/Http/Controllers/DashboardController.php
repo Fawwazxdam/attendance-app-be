@@ -102,7 +102,8 @@ class DashboardController extends Controller
             $monthlyRate = $totalDays > 0 ? round((($monthlyPresent + $monthlyLate) / $totalDays) * 100, 1) : 0;
 
             // Current attendance streak
-            $currentStreak = $this->calculateAttendanceStreak($studentId);
+            // $currentStreak = $this->calculateAttendanceStreak($studentId);
+            $currentStreak = $student->late_free_streak;
 
             // Recent attendance (last 7 days)
             $recentAttendance = Attendance::where('student_id', $studentId)
@@ -113,8 +114,7 @@ class DashboardController extends Controller
                     return [
                         'date' => $attendance->date,
                         'status' => $attendance->status,
-                        'time' => $attendance->created_at ? $attendance->created_at->format('H:i') : null,
-                        'points' => $this->getPointsForAttendance($attendance->status)
+                        'time' => $attendance->created_at ? $attendance->created_at->format('H:i') : null
                     ];
                 });
 
@@ -129,8 +129,7 @@ class DashboardController extends Controller
                     'personal_stats' => [
                         'monthly_attendance_rate' => $monthlyRate,
                         'current_streak' => $currentStreak,
-                        'late_free_streak' => $student->late_free_streak,
-                        'total_points' => $student->studentPoint ? $student->studentPoint->total_points : 0
+                        'late_free_streak' => $student->late_free_streak
                     ],
                     'recent_attendance' => $recentAttendance,
                     'today_status' => $this->getTodayAttendanceStatus($studentId)
@@ -323,28 +322,7 @@ class DashboardController extends Controller
             $data = [];
             $labels = [];
 
-            if ($period === 'day') {
-                // Last 7 days attendance for this student
-                for ($i = $limit - 1; $i >= 0; $i--) {
-                    $date = Carbon::now()->subDays($i)->toDateString();
-
-                    $dailyAttendance = Attendance::where('student_id', $studentId)
-                        ->where('date', $date)
-                        ->get();
-
-                    $presentRecords = $dailyAttendance->whereIn('status', ['present', 'excused']);
-                    $lateRecords = $dailyAttendance->where('status', 'late');
-
-                    $labels[] = Carbon::parse($date)->format('M d');
-                    $data[] = [
-                        'present' => $presentRecords->count(),
-                        'late' => $lateRecords->count(),
-                        'absent' => $dailyAttendance->where('status', 'absent')->count(),
-                        'present_times' => $presentRecords->pluck('created_at')->map(fn($time) => $time ? $time->format('H:i') : null)->toArray(),
-                        'late_times' => $lateRecords->pluck('created_at')->map(fn($time) => $time ? $time->format('H:i') : null)->toArray()
-                    ];
-                }
-            } elseif ($period === 'month') {
+            if ($period === 'month') {
                 // Last 12 months
                 for ($i = $limit - 1; $i >= 0; $i--) {
                     $date = Carbon::now()->subMonths($i);
@@ -598,14 +576,6 @@ class DashboardController extends Controller
         return $streak;
     }
 
-    private function getPointsForAttendance($status)
-    {
-        switch ($status) {
-            case 'present': return 10;
-            case 'late': return 5;
-            default: return 0;
-        }
-    }
 
     private function getTodayAttendanceStatus($studentId)
     {

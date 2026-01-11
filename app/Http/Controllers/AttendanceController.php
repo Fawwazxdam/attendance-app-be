@@ -89,9 +89,8 @@ class AttendanceController extends Controller
                 'attendances' => $attendances->toArray()
             ]);
 
-            // Add points_earned to each attendance and load punishment records
+            // Load punishment records
             $attendances->transform(function ($attendance) {
-                $attendance->points_earned = $this->calculatePointsEarned($attendance->status);
                 // Rename status to attendance_status to avoid conflict with punishment record status
                 $attendance->attendance_status = $attendance->status;
                 unset($attendance->status);
@@ -143,9 +142,7 @@ class AttendanceController extends Controller
             ->with('student:id,fullname,grade_id', 'student.studentPoint', 'medias')
             ->first();
 
-        if ($attendance) {
-            $attendance->points_earned = $this->calculatePointsEarned($attendance->status);
-        }
+        // Attendance loaded without points calculation
 
         return response()->json([
             'date' => $parsedDate,
@@ -216,9 +213,8 @@ class AttendanceController extends Controller
 
             $attendances = $query->get();
 
-            // Add points_earned to each attendance and load punishment records
+            // Load punishment records
             $attendances->transform(function ($attendance) {
-                $attendance->points_earned = $this->calculatePointsEarned($attendance->status);
                 // Rename status to attendance_status to avoid conflict with punishment record status
                 $attendance->attendance_status = $attendance->status;
                 unset($attendance->status);
@@ -261,7 +257,6 @@ class AttendanceController extends Controller
 
         $attendances = collect();
         if ($attendance) {
-            $attendance->points_earned = $this->calculatePointsEarned($attendance->status);
             $attendance->attendance_status = $attendance->status;
             unset($attendance->status);
             $attendances->push($attendance);
@@ -284,17 +279,46 @@ class AttendanceController extends Controller
     public function store(Request $request)
     {
         try {
-            // Validasi request
-            $request->validate([
-                'remarks' => 'nullable|string|max:255',
-                'images' => 'required|array|min:1',
-                'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-            ]);
-
             $user = $request->user();
 
-            // Check if user is administrator
-            if ($user->role === 'administrator') {
+            // Check if marking a student (teacher/admin)
+            if ($request->has('student_id')) {
+                // For teachers/admins, create absent attendance record for student
+                $request->validate([
+                    'student_id' => 'required|exists:students,id',
+                    'date' => 'required|date',
+                    'status' => 'required|in:absent,excused',
+                    'remarks' => 'nullable|string|max:255',
+                    'is_teacher_marked' => 'required|boolean',
+                ]);
+
+                $attendance = Attendance::updateOrCreate(
+                    ['student_id' => $request->student_id, 'date' => $request->date],
+                    [
+                        'status' => $request->status,
+                        'remarks' => $request->remarks,
+                    ]
+                );
+
+                // Apply punishment
+                $student = Student::find($request->student_id);
+                $this->applyAttendanceRewardPunishment($student, $request->status, $request->date);
+
+                // For excused status (sick), maintain late_free_streak
+                if ($request->status === 'excused') {
+                    $student->late_free_streak += 1;
+                    // Set reward eligible if streak reaches 5
+                    if ($student->late_free_streak >= 5 && !$student->reward_eligible) {
+                        $student->reward_eligible = true;
+                    }
+                    $student->save();
+                }
+
+                return response()->json([
+                    'message' => 'Student marked as ' . ($request->status === 'excused' ? 'excused' : 'absent') . ' by ' . ($user->role === 'administrator' ? 'admin' : 'teacher'),
+                    'attendance' => $attendance,
+                ], 201);
+            } elseif ($user->role === 'administrator') {
                 // For administrators, create a special attendance record with excused status
                 $today = Carbon::today('Asia/Jakarta')->toDateString();
                 $existingAttendance = Attendance::where('student_id', null)
@@ -371,6 +395,13 @@ class AttendanceController extends Controller
                     'attendance' => $attendance,
                 ], 201);
             }
+
+            // Validasi request for students
+            $request->validate([
+                'remarks' => 'nullable|string|max:255',
+                'images' => 'required|array|min:1',
+                'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            ]);
 
             $student = $user->student()->with('grade.homeroomTeacher')->first();
 
@@ -474,10 +505,7 @@ class AttendanceController extends Controller
             });
 
             // Load relationships untuk response
-            $attendance->load('student', 'student.studentPoint', 'medias');
-
-            // Add points_earned to response
-            $attendance->points_earned = $this->calculatePointsEarned($attendance->status);
+            $attendance->load('student', 'medias');
 
             return response()->json([
                 'message' => 'Attendance submitted successfully',
@@ -603,61 +631,35 @@ class AttendanceController extends Controller
     }
 
     /**
-     * Calculate points earned based on attendance status.
-     */
-    private function calculatePointsEarned($status)
-    {
-        switch ($status) {
-            case 'present':
-                return 5;
-            case 'late':
-                return -5;
-            case 'excused':
-            case 'absent':
-            default:
-                return 0;
-        }
-    }
 
     /**
      * Apply reward or punishment based on attendance status.
      */
     private function applyAttendanceRewardPunishment($student, $status, $date)
     {
-        $points = 0;
         $ruleName = '';
         $type = '';
         $logStatus = 'DONE';
+        $description = '';
 
         if ($status === 'present') {
-            $points = 5;
             $ruleName = 'Tepat Waktu';
             $type = 'reward';
+            $description = "Attendance - Present: Student arrived on time";
         } elseif ($status === 'late') {
-            $points = -5;
             $ruleName = 'Terlambat';
             $type = 'punishment';
             $logStatus = 'PENDING';
+            $description = "Attendance - Late: Student was late for attendance";
         } elseif ($status === 'absent') {
-            $points = -15;
             $ruleName = 'Tidak Hadir';
             $type = 'punishment';
             $logStatus = 'PENDING';
+            $description = "Attendance - Absent: Student was absent";
         } elseif ($status === 'excused') {
-            // No points change
+            // No action needed for excused
             return;
         }
-
-        // Get or create student point record
-        $studentPoint = StudentPoint::firstOrCreate(
-            ['student_id' => $student->id],
-            ['total_points' => 0]
-        );
-
-        // Update points
-        $studentPoint->total_points += $points;
-        $studentPoint->last_updated = now();
-        $studentPoint->save();
 
         // Get the rule
         $rule = RewardPunishmentRule::where('name', $ruleName)->first();
@@ -690,7 +692,7 @@ class AttendanceController extends Controller
                 'teacher_id' => $homeroomTeacher->id,
                 'rule_id' => $rule->id,
                 'type' => $type,
-                'description' => "Attendance - Late: Student was late for attendance",
+                'description' => $description,
                 'status' => 'pending',
                 'given_date' => $date,
                 'notes' => "Automatically generated from attendance system",
